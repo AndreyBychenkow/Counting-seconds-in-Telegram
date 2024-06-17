@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import pytimeparse
 from dotenv import load_dotenv
@@ -16,34 +17,44 @@ def render_progressbar(
     return "{0} |{1}| {2}% {3}".format(prefix, pbar, percent, suffix)
 
 
-def set_timer(chat_id, message):
+def notify_progress(bot, chat_id, start_message_id, delay_seconds, secs_left):
+    if secs_left > 0:
+        progress_bar = render_progressbar(delay_seconds, secs_left)
+        bot.update_message(
+            chat_id,
+            start_message_id,
+            f"Осталось {secs_left} секундn{progress_bar}",
+        )
+    else:
+        bot.update_message(chat_id, start_message_id, f"Осталось 0 секунд")
+        bot.send_message(chat_id, "Время вышло")
+
+
+def set_timer(bot, chat_id, message):
     delay_seconds = pytimeparse.parse(message)
     start_message_id = bot.send_message(
-        chat_id, f"Запуск таймера {delay_seconds} секунд"
+        chat_id, f"Запуск таймера на {delay_seconds} секунд"
     )
 
-    def notify_progress(secs_left):
-        if secs_left > 0:
-            progress_bar = render_progressbar(delay_seconds, secs_left)
-            bot.update_message(
-                chat_id,
-                start_message_id,
-                f"Осталось {secs_left} секунд\n{progress_bar}",
-            )
-        else:
-            bot.update_message(chat_id, start_message_id, f"Осталось 0 секунд")
-            bot.send_message(chat_id, "Время вышло")
+    notify = partial(notify_progress, bot, chat_id,
+                     start_message_id, delay_seconds)
 
-    bot.create_countdown(delay_seconds, notify_progress)
+    bot.create_countdown(delay_seconds, notify)
+
+
+def main():
+    load_dotenv()
+    tg_token = os.getenv("TELEGRAM_TOKEN")
+    tg_chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
+    bot = ptbot.Bot(tg_token)
+    bot.send_message(tg_chat_id, "Бот запущен")
+    bot.send_message(tg_chat_id, "На сколько запускаем таймер?")
+
+    bot.reply_on_message(lambda chat_id, message:
+                         set_timer(bot, tg_chat_id, message))
+    bot.run_bot()
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    TG_TOKEN = os.getenv("TELEGRAM_TOKEN")
-    TG_CHAT_ID = os.getenv("TG_CHAT_ID")
-
-    bot = ptbot.Bot(TG_TOKEN)
-    bot.send_message(TG_CHAT_ID, "Бот запущен")
-    bot.send_message(TG_CHAT_ID, "На сколько запускаем таймер ?")
-    bot.reply_on_message(set_timer)
-    bot.run_bot()
+    main()

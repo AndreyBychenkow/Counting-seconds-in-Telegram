@@ -5,13 +5,9 @@ from dotenv import load_dotenv
 
 import ptbot
 
-load_dotenv()
-TG_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TG_CHAT_ID = os.getenv("TG_CHAT_ID")
-
 
 def render_progressbar(
-    total, iteration, prefix="", suffix="", length=30, fill="░", zfill="█"
+        total, iteration, prefix="", suffix="", length=30, fill="░", zfill="█"
 ):
     iteration = min(total, iteration)
     percent = "{0:.1f}".format(100 * (iteration / float(total)))
@@ -42,6 +38,10 @@ def set_timer(chat_id, message):
 
 
 if __name__ == "__main__":
+    load_dotenv()
+    TG_TOKEN = os.getenv("TELEGRAM_TOKEN")
+    TG_CHAT_ID = os.getenv("TG_CHAT_ID")
+
     bot = ptbot.Bot(TG_TOKEN)
     bot.send_message(TG_CHAT_ID, "Бот запущен")
     bot.send_message(TG_CHAT_ID, "На сколько запускаем таймер ?")

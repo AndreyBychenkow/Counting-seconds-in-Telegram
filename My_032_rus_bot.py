@@ -1,5 +1,5 @@
 import os
-from functools import partial
+from time import sleep
 
 import pytimeparse
 from dotenv import load_dotenv
@@ -8,7 +8,7 @@ import ptbot
 
 
 def render_progressbar(
-        total, iteration, prefix="", suffix="", length=30, fill="░", zfill="█"
+    total, iteration, prefix="", suffix="", length=30, fill="░", zfill="█"
 ):
     iteration = min(total, iteration)
     percent = "{0:.1f}".format(100 * (iteration / float(total)))
@@ -18,15 +18,11 @@ def render_progressbar(
 
 
 def notify_progress(bot, chat_id, start_message_id, delay_seconds, secs_left):
-    if secs_left > 0:
-        progress_bar = render_progressbar(delay_seconds, secs_left)
-        bot.update_message(
-            chat_id,
-            start_message_id,
-            f"Осталось {secs_left} секундn{progress_bar}",
-        )
-    else:
-        bot.update_message(chat_id, start_message_id, f"Осталось 0 секунд")
+    progress_bar = render_progressbar(total=delay_seconds, iteration=secs_left)
+    bot.update_message(
+        chat_id, start_message_id, f"Осталось {secs_left} секунд\n{progress_bar}"
+    )
+    if secs_left == 0:
         bot.send_message(chat_id, "Время вышло")
 
 
@@ -36,10 +32,9 @@ def set_timer(bot, chat_id, message):
         chat_id, f"Запуск таймера на {delay_seconds} секунд"
     )
 
-    notify = partial(notify_progress, bot, chat_id,
-                     start_message_id, delay_seconds)
-
-    bot.create_countdown(delay_seconds, notify)
+    for secs_left in range(delay_seconds, -1, -1):
+        notify_progress(bot, chat_id, start_message_id, delay_seconds, secs_left)
+        sleep(1)
 
 
 def main():
@@ -51,8 +46,8 @@ def main():
     bot.send_message(tg_chat_id, "Бот запущен")
     bot.send_message(tg_chat_id, "На сколько запускаем таймер?")
 
-    bot.reply_on_message(lambda chat_id, message:
-                         set_timer(bot, tg_chat_id, message))
+    bot.reply_on_message(lambda chat_id, message: set_timer(bot, chat_id, message))
+
     bot.run_bot()
 
 
